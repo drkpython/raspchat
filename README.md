@@ -39,4 +39,6 @@ python raspchat.py
 
 ## 结束工作
 当你完成项目工作后，可通过以下命令退出虚拟环境：
+```bash
 deactivate
+```
