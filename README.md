@@ -35,7 +35,7 @@ pip install -r requirements.txt
 ```bash
 python raspchat.py
 ```
-## 按空格跟它说话
+## 按住空格跟它说话
 
 ## 结束工作
 当你完成项目工作后，可通过以下命令退出虚拟环境：
