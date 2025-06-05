@@ -42,3 +42,5 @@ python raspchat.py
 ```bash
 deactivate
 ```
+## 在win上跑
+在win上也能跑，拉完仓库开虚拟环境装依赖之后，要把opus.dll放到\raspchat\.venv\Scripts中，这个opus包在win上会缺少这个dll文件
