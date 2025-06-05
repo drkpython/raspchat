@@ -1,4 +1,4 @@
-RaspChat 项目安装与运行指南
+raspberrypi llm chat for Hildy 项目安装与运行指南
 ## 经典更新
 首先更新系统软件包：
 ```bash
