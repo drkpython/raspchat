@@ -15,7 +15,7 @@ import logging
 from pynput import keyboard as pynput_keyboard
 
 OTA_VERSION_URL = 'https://api.tenclass.net/xiaozhi/ota/'
-MAC_ADDR = 'cd:62:f4:3d:b4:ba'
+MAC_ADDR = 'xx:xx:xx:xx:xx:xx'
 # {"mqtt":{"endpoint":"post-cn-apg3xckag01.mqtt.aliyuncs.com","client_id":"GID_test@@@cc_ba_97_20_b4_bc",
 # "username":"Signature|LTAI5tF8J3CrdWmRiuTjxHbF|post-cn-apg3xckag01","password":"0mrkMFELXKyelhuYy2FpGDeCigU=",
 # "publish_topic":"device-server","subscribe_topic":"devices"},"firmware":{"version":"0.9.9","url":""}}
@@ -31,7 +31,8 @@ iot_msg = {"session_id": "635aa42d", "type": "iot",
                             "properties": {"volume": {"description": "当前音量值", "type": "number"}},
                             "methods": {"SetVolume": {"description": "设置音量",
                                                       "parameters": {
-                                                          "volume": {"description": "0到100之间的整数", "type": "number"}
+                                                          "volume": {"description": "0到100之间的整数",
+                                                                     "type": "number"}
                                                       }
                                                       }
                                         }
@@ -344,12 +345,33 @@ def run():
     # 创建客户端实例
     mqttc = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id=mqtt_info['client_id'])
     mqttc.username_pw_set(username=mqtt_info['username'], password=mqtt_info['password'])
-    mqttc.tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=mqtt.ssl.CERT_REQUIRED,
+
+    # 方案1: 完全禁用SSL证书验证（解决证书过期问题）
+    mqttc.tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=mqtt.ssl.CERT_NONE,
                   tls_version=mqtt.ssl.PROTOCOL_TLS, ciphers=None)
+
     mqttc.on_connect = on_connect
     mqttc.on_message = on_message
-    mqttc.connect(host=mqtt_info['endpoint'], port=8883)
-    mqttc.loop_forever()
+
+    try:
+        mqttc.connect(host=mqtt_info['endpoint'], port=8883)
+        mqttc.loop_forever()
+    except Exception as e:
+        print(f"SSL连接失败: {e}")
+        print("尝试普通连接...")
+        # 如果SSL连接失败，尝试普通连接
+        try:
+            mqttc_plain = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+                                      client_id=mqtt_info['client_id'])
+            mqttc_plain.username_pw_set(username=mqtt_info['username'], password=mqtt_info['password'])
+            mqttc_plain.on_connect = on_connect
+            mqttc_plain.on_message = on_message
+            mqttc = mqttc_plain  # 更新全局变量
+            mqttc.connect(host=mqtt_info['endpoint'], port=1883)  # 使用普通端口
+            mqttc.loop_forever()
+        except Exception as e2:
+            print(f"普通连接也失败: {e2}")
+            print("所有连接方式都失败了")
 
 
 if __name__ == "__main__":
