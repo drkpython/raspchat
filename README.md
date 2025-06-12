@@ -13,7 +13,7 @@ sudo apt install git python3 python3-venv python3-pip
 ```bash
 git clone https://github.com/drkpython/raspchat.git
 ```
-## 创建虚拟环境
+## 创建虚拟环境（如果你的其他主程序没有在虚拟环境中跑，请忽略这一步）
 进入仓库文件夹：
 ```bash
 cd raspchat
