@@ -13,7 +13,7 @@ sudo apt install git python3 python3-venv python3-pip
 ```bash
 git clone https://github.com/drkpython/raspchat.git
 ```
-## 创建虚拟环境（如果你的其他主程序没有在虚拟环境中跑，请忽略这一步）
+## 创建虚拟环境（如果你的其他主程序都是在全局环境中跑的，请忽略这一步）
 进入仓库文件夹：
 ```bash
 cd raspchat
@@ -31,11 +31,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 ## 运行
-在虚拟环境激活且位于项目目录的状态下，运行主程序：
+在虚拟环境激活（或者全局环境）且位于项目目录的状态下，运行主程序：
 ```bash
 python raspchat.py
 ```
-## 按住空格跟它说话
+## 按住空格跟它说话(调用默认扬声器和麦克风，如果你有多个设备，请在右上角右键修改为你想用的设备)
 
 ## 结束工作
 退出虚拟环境：
@@ -44,3 +44,5 @@ deactivate
 ```
 ## 在win上跑
 在win上也能跑，拉完仓库开虚拟环境装依赖之后，要把opus.dll放到\raspchat\.venv\Scripts中，这个opus包在win上会缺少这个dll文件
+
+## 如果你有其他项目需要联动raspchat.py，请把raspchat.py放到你的项目文件夹下
