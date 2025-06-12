@@ -1,5 +1,5 @@
 raspberrypi llm chat for Hildy 项目安装与运行指南
-## 经典更新(以下所有指令请使用命令行运行)
+## 经典更新(默认使用vscode终端运行)
 首先更新系统软件包：
 ```bash
 sudo apt update
