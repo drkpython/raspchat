@@ -45,4 +45,4 @@ deactivate
 ## 在win上跑
 在win上也能跑，拉完仓库开虚拟环境装依赖之后，要把opus.dll放到\raspchat\.venv\Scripts中，这个opus包在win上会缺少这个dll文件
 
-## 如果你希望raspchat.py作为子程序同时运行，请确保主程序和raspchat.py处在同一目录中，同一虚拟环境（或者全局环境）中
+## 如果你希望raspchat.py作为子程序同时运行，请确保主程序和raspchat.py处在同一目录中，同一虚拟环境（或者全局环境）中，或者指定运行路径
