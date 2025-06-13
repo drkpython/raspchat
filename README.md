@@ -9,7 +9,7 @@ sudo apt upgrade -y
 ```bash
 sudo apt install git python3 python3-venv python3-pip
 ```
-## 克隆代码仓库：
+## 克隆代码仓库(默认会在/home目录下)：
 ```bash
 git clone https://github.com/drkpython/raspchat.git
 ```
