@@ -15,7 +15,7 @@ from pynput import keyboard as pynput_keyboard
 import numpy as np
 
 OTA_VERSION_URL = 'https://api.tenclass.net/xiaozhi/ota/'
-MAC_ADDR = '7c:10:c9:23:55:6d'
+MAC_ADDR = 'xxxxxxx'
 ENERGY_THRESHOLD = 1000
 SILENCE_TIMEOUT = 2.0
 
