@@ -15,9 +15,10 @@ from pynput import keyboard as pynput_keyboard
 import numpy as np
 
 OTA_VERSION_URL = 'https://api.tenclass.net/xiaozhi/ota/'
-MAC_ADDR = 'xxxxxxx'
+MAC_ADDR = '7c:10:c9:23:55:6d'
 ENERGY_THRESHOLD = 1000
 SILENCE_TIMEOUT = 2.0
+HEARTBEAT_INTERVAL = 15.0  # 15秒心跳间隔
 
 mqtt_info = {}
 aes_opus_info = {"session_id": None}
@@ -32,10 +33,44 @@ mqttc = None
 should_stop = False
 is_voice_active = False
 voice_start_time = None
+last_activity_time = time.time()  # 记录最后活动时间
 
 recv_audio_thread = None
 send_audio_thread = None
 voice_energy_thread = None
+heartbeat_thread = None
+
+
+def update_activity_time():
+    """更新最后活动时间"""
+    global last_activity_time
+    last_activity_time = time.time()
+
+
+def heartbeat_monitor():
+    """心跳监控线程，如果15秒内没有活动就发送心跳"""
+    global should_stop, last_activity_time
+
+    print("心跳监控已启动")
+
+    while not should_stop:
+        try:
+            current_time = time.time()
+            time_since_last_activity = current_time - last_activity_time
+
+            if time_since_last_activity >= HEARTBEAT_INTERVAL:
+                print("发送心跳包 - 执行自动监听循环")
+                # 执行心跳：开始监听然后立即停止
+                start_listening()
+                time.sleep(0.1)  # 短暂延迟
+                stop_listening()
+                update_activity_time()  # 更新活动时间
+
+            time.sleep(1)  # 每秒检查一次
+
+        except Exception as e:
+            print(f"心跳监控错误: {e}")
+            time.sleep(1)
 
 
 def calculate_energy(audio_data):
@@ -63,6 +98,9 @@ def calculate_energy(audio_data):
 
 def start_listening():
     global conn_state, aes_opus_info, tts_state
+
+    # 更新活动时间
+    update_activity_time()
 
     if not conn_state or not aes_opus_info.get('session_id'):
         conn_state = True
@@ -98,6 +136,9 @@ def start_listening():
 
 def stop_listening():
     global aes_opus_info
+
+    # 更新活动时间
+    update_activity_time()
 
     if aes_opus_info.get('session_id'):
         msg = {
@@ -299,34 +340,6 @@ def recv_audio():
                 pass
 
 
-def reconnect_to_server():
-    global conn_state, aes_opus_info, udp_socket, recv_audio_thread, send_audio_thread
-
-    print("正在重新连接服务器...")
-
-    cleanup_connections()
-
-    conn_state = False
-    aes_opus_info = {"session_id": None}
-
-    if get_ota_version():
-        hello_msg = {
-            "type": "hello",
-            "version": 3,
-            "transport": "udp",
-            "audio_params": {
-                "format": "opus",
-                "sample_rate": 16000,
-                "channels": 1,
-                "frame_duration": 60
-            }
-        }
-        push_mqtt_msg(hello_msg)
-        print("已发送重新连接请求")
-    else:
-        print("重新连接失败")
-
-
 def cleanup_connections():
     global udp_socket, recv_audio_thread, send_audio_thread, local_sequence
 
@@ -351,6 +364,9 @@ def on_message(client, userdata, message):
     try:
         msg = json.loads(message.payload)
         print(f"收到消息: {msg}")
+
+        # 收到任何消息都更新活动时间
+        update_activity_time()
 
         if msg['type'] == 'hello':
             aes_opus_info = msg
@@ -379,13 +395,16 @@ def on_message(client, userdata, message):
         elif msg['type'] == 'tts':
             tts_state = msg['state']
 
-        # 移除了处理goodbye消息的代码
+        elif msg['type'] == 'goodbye':
+            print("收到goodbye消息，心跳机制将保持连接活跃")
+
     except Exception as e:
         print(f"处理MQTT消息错误: {e}")
 
 
 def on_connect(client, userdata, flags, rc, properties=None):
     print("已连接到MQTT服务器")
+    update_activity_time()  # 连接成功时更新活动时间
     try:
         if 'subscribe_topic' in mqtt_info and mqtt_info['subscribe_topic'] != 'null':
             client.subscribe(mqtt_info['subscribe_topic'])
@@ -403,6 +422,7 @@ def push_mqtt_msg(message):
     try:
         if mqttc and mqttc.is_connected():
             mqttc.publish(mqtt_info['publish_topic'], json.dumps(message))
+            update_activity_time()  # 发送消息时更新活动时间
         else:
             print("MQTT未连接，无法发送消息")
     except Exception as e:
@@ -473,7 +493,7 @@ def connect_mqtt():
 
 
 def run():
-    global voice_energy_thread, should_stop
+    global voice_energy_thread, heartbeat_thread, should_stop
 
     if not get_ota_version():
         print("无法获取服务器配置，程序退出")
@@ -487,6 +507,13 @@ def run():
         voice_energy_thread.daemon = True
         voice_energy_thread.start()
         print("语音能量检测已启动（优化版本）")
+
+    # 启动心跳监控线程
+    if not heartbeat_thread or not heartbeat_thread.is_alive():
+        heartbeat_thread = threading.Thread(target=heartbeat_monitor)
+        heartbeat_thread.daemon = True
+        heartbeat_thread.start()
+        print(f"心跳监控已启动，间隔{HEARTBEAT_INTERVAL}秒")
 
     while not should_stop:
         if connect_mqtt():
@@ -507,6 +534,7 @@ if __name__ == "__main__":
         print("程序启动 - 支持空格键手动触发和语音能量自动唤醒（优化版本）")
         print(f"语音能量阈值: {ENERGY_THRESHOLD}")
         print(f"静音超时时间: {SILENCE_TIMEOUT}秒")
+        print(f"心跳间隔: {HEARTBEAT_INTERVAL}秒")
         print("按ESC键退出程序")
         run()
     except KeyboardInterrupt:
